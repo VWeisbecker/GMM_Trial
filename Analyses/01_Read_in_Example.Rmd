@@ -10,13 +10,8 @@ output: html_document
 
 ```{r }
 library(geomorph)
-library(ape)
-library(plyr)
 library(abind)
-library(geiger)
-library(caper)
-library(devtools)
-library(phytools)
+
 ```
 
 ## Read in coordinates
@@ -42,37 +37,57 @@ filelist <- list.files(path= "../Data/Raw/Coordinates", pattern = "*.txt")
     coords <- rbind(coords, two.d.array(temp)) }
   Data <- arrayspecs(coords, k, 3) 
   dimnames(Data)[[3]] <- filelist_species
- # remove(i, filelist, names, k, coords, temp) # clean up environment
+  remove(i, filelist, names, k, coords, temp) # clean up environment
   
-  #Double check that the 3D info is entered properly
+  
+```
+
+#Read in classifier file that contains the species name, locomotion type, diet, and clade; and also read in a ply file for checks
+
+
+```{r}
+
+speclist<- read.delim("../Data/Raw/Trial_classifier_list.txt")
+rownames(speclist) <-speclist$Specimen
+
+#This is a mesh I crunched down to 500,000 faces. It's 18 kb.
+Apyg <- read.ply("../Data/Raw/Acrobates_pygmaeus_J7579.ply")
+
+#There's a weird thing about these meshes at the moment, they show up as black. So to fix this I found a strange workaround - but any improvements are much appreciated
+
+Apyg$material$color <- Apyg$it
+Apyg$material$color <- "hotpink"
+
+#Isn't she gorgeous!!
+shade3d(Apyg)
+
+
+```
+
+#Now you want to check if all is well
+
+````{r}
+
+#Double check that the order of your Array and the order of your specimen list are the same (they will need to talk to each other!). This has to return "TRUE" for all. 
+
+dimnames(Data)[[3]]==rownames(speclist)
+
+
+#Double check that the 3D info is entered properly by checking landmark numbers
   plot3d(Data[,,4], asp=FALSE)
   text3d(Data[,,4], texts=c(1:58))
   
-```
-
-#Read in classifier file that contains the species name, locomotion type, diet, and clade
 
 
-```{r}
-
-speclist<- read.delim("../Data/Raw/Mars_classifier_list.txt")
-rownames(speclist) <-speclist$Specimen
-
-```
-
-#Importation of partition map, ensure it's a factor
 
 
-The landmark dataset will now be split into two partitions; basicranium and the rest of the skull. 
+open3d()
 
-```{r}
-
-### Import the  partition map, ensure it's a factor
-part.gp=as.vector(read.csv("../Data/Raw/partitions.csv", header=FALSE))
-part.gp=as.factor(part.gp$V1)
+plotspec(Apyg, Data[,,1], ptsize=1 )
 
 
-```
+````
+
 
 
 #GPA for all coordinates
