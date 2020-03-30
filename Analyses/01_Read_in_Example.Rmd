@@ -78,12 +78,10 @@ dimnames(Data)[[3]]==rownames(speclist)
   text3d(Data[,,4], texts=c(1:58))
   
 
-
-
-
+#open new 3D window so any previous don't accidentally superimpose  
 open3d()
-
-plotspec(Apyg, Data[,,1], ptsize=1 )
+#There's a way of getting rid of those lines but I forgot it.
+plotspec(Apyg, Data[,,1], ptsize=2, lwd=0 )
 
 
 ````
@@ -94,251 +92,28 @@ plotspec(Apyg, Data[,,1], ptsize=1 )
 
 ```{r}
 #Run GPA
-GPA_AllSpecimens <- gpagen(Data)
+GPA <- gpagen(Data)
+
 ```
-
-
-#AVERAGING MULTIPLE SPECIMENS OF ONE SPECIES
-
+#run a basic PCA
 ```{r}
 
-# shape data
-ind.coords <- aggregate(two.d.array(GPA_AllSpecimens$coords) ~ dimnames(GPA_AllSpecimens$coords)[[3]], FUN=mean)[,-1]
-rownames(ind.coords) <- unique(dimnames(GPA_AllSpecimens$coords)[[3]])
-ind.coords <- arrayspecs(ind.coords, p=ncol(ind.coords)/3, k=3)
-#ind.coords_gpa <- gpagen (ind.coords) #Leonie did this but double-sliding the configurations seems dubious to me.
+PCA <- plotTangentSpace(GPA$coords)
 
-# centroid size data
-ind.Csize <- as.vector(aggregate(GPA_AllSpecimens$Csize ~ dimnames(GPA_AllSpecimens$coords)[[3]], FUN=mean)[,-1])
-names(ind.Csize) <- unique(names(GPA_AllSpecimens$Csize))
+plotRefToTarget(PCA$pc.shapes$PC1min, PCA$pc.shapes$PC1max, method="vector")
 
-
-# ind.Csize - These are the individuals Csize data for plotting specimen allometry graphs
-
-#are dimnames identical i.e. will the aligned properly?
-dimnames(GPA_AllSpecimens$coords)[[3]]==names(GPA_AllSpecimens$Csize)
-
-dimnames(ind.coords)[[3]]==names(ind.Csize)
-
-#Turning into gdf frame and giving names
-GPA_Allmean <-geomorph.data.frame(coords=ind.coords, Csize=ind.Csize)
-
-GPA_allmean_consensus <- GPA_AllSpecimens$consensus
-
-dimnames(GPA_Allmean$coords)[[3]] <-dimnames(ind.coords)[[3]]
-names(GPA_Allmean$Csize) <- names(ind.Csize)
-
-```
-
-
-#GPA for basicranial landmarks
-```{r}
-#Subset basicranial landmarks
-Data_basi=Data[which(part.gp==2),,]
-#double-check that the correct number of landmarks has been subtracted
-attributes(Data_basi)
-
-#GPA
-GPA_basi <- gpagen(Data_basi)
-
-
-#AVERAGING MULTIPLE SPECIMENS OF ONE SPECIES
-
-#Two of the species in this dataset have multiple specimens which means they must be averaged prior to analysis. Once this is performed, GPA must be run again to incorporate these changes 
-
-#Remember= dim() is the dimensions of an object
-
-
-# shape data
-basi.coords <- aggregate(two.d.array(GPA_basi$coords) ~ dimnames(GPA_basi$coords)[[3]], FUN=mean)[,-1]
-rownames(basi.coords) <- unique(dimnames(GPA_basi$coords)[[3]])
-basi.coords <- arrayspecs(basi.coords, p=ncol(basi.coords)/3, k=3)
-# centroid size data
-basi.Csize <- as.vector(aggregate(GPA_basi$Csize ~ dimnames(GPA_basi$coords)[[3]], FUN=mean)[,-1])
-names(basi.Csize) <- unique(names(GPA_basi$Csize))
-# basi.Csize - These are the individuals Csize data for plotting specimen allometry graphs
-
-#are dimnames identical i.e. will the aligned properly?
-dimnames(GPA_basi$coords)[[3]]==names(GPA_basi$Csize)
-
-dimnames(basi.coords)[[3]]==names(basi.Csize)
-
-#Turning into gdf frame and giving names
-GPA_Basimean <-geomorph.data.frame(coords=basi.coords, Csize=basi.Csize)
-dimnames(GPA_Basimean$coords)[[3]] <-dimnames(basi.coords)[[3]]
-names(GPA_Basimean$Csize) <- names(basi.Csize)
-
-GPA_basimean_consensus <-GPA_basi$consensus
-
-```
-
-
-
-#GPA for the REST OF THE SKULL
-
-
-```{r}
-
-#Subset the rest of the skull's landmarks lms
-Data_reskull=Data[which(part.gp==1),,]
-#double-check that the correct number of landmarks has been subtracted
-attributes(Data_reskull)
-
-#GPA
-
-GPA_reskull <- gpagen(Data_reskull)
-
-
-#AVERAGING MULTIPLE SPECIMENS OF ONE SPECIES
-
-#Two of the species in this dataset have multiple specimens which means they must be averaged prior to analysis. Once this is performed, GPA must be run again to incorporate these changes 
-
-#Remember= dim() is the dimensions of an object
-
-# shape data
-ind.coords <- aggregate(two.d.array(GPA_reskull$coords) ~ dimnames(GPA_reskull$coords)[[3]], FUN=mean)[,-1]
-rownames(ind.coords) <- unique(dimnames(GPA_reskull$coords)[[3]])
-ind.coords <- arrayspecs(ind.coords, p=ncol(ind.coords)/3, k=3)
-# centroid size data
-ind.Csize <- as.vector(aggregate(GPA_reskull$Csize ~ dimnames(GPA_reskull$coords)[[3]], FUN=mean)[,-1])
-names(ind.Csize) <- unique(names(GPA_reskull$Csize))
-# ind.Csize - These are the individuals Csize data for plotting specimen allometry graphs
-
-#are dimnames identical i.e. will the aligned properly?
-dimnames(GPA_reskull$coords)[[3]]==names(GPA_reskull$Csize)
-
-dimnames(ind.coords)[[3]]==names(ind.Csize)
-
-#Turning into gdf frame and giving names
-GPA_Restmean <-geomorph.data.frame(coords=ind.coords, Csize=ind.Csize)
-dimnames(GPA_Restmean$coords)[[3]] <-dimnames(ind.coords)[[3]]
-names(GPA_Restmean$Csize) <- names(ind.Csize)
-
-GPA_restmean_consensus <- GPA_reskull$consensus
-
-```
-# PHYLOGENY 
-
-#names(tree_use$tip.label[NUMBER] <- "New_Species") #What I need to write to change the name of a particular tip
-
-```{r}
-#This is the ML tree of Mitchell et al. 2014
-
-tree=read.nexus("../Data/Raw/Mitchell_pruned_tree.nex")
-tree_use <- tree[1]$tree_1
-
-###~~~~~~~CHANGING SPECIES NAME~~~~~~~~~~###
-tree_use$tip.label
-tree_use$tip.label[5]  
-#This shows particular tip label (without the number present this code will provide you with all the tip labels)
-
-tree_use$tip.label[5] <- "Caluromys_derbianus"
-tree_use$tip.label[1] <- "Lestoros_inca"
-tree_use$tip.label[178] <- "Dendrolagus_inustus"
-tree_use$tip.label[30] <- "Philander_andersoni"
-tree_use$tip.label[124] <- "Phalanger_mimicus"
-tree_use$tip.label[66] <- "Planigale_ingrami"
-tree_use$tip.label[67] <- "Sminthopsis_murina"
-tree_use$tip.label[39] <- "Thylamys_elegans"
-tree_use$tip.label[20] <- "Marmosa_demerarae"
-tree_use$tip.label[19] <- "Marmosa_alstoni"
-tree_use$tip.label[130] <- "Petaurus_australis"
-
-
-#cHECK that it works with phylogeny
-namecheck=name.check(tree_use,GPA_Allmean$Csize)
-
-#Checking to see if the species coordinates and the species on the tree match
-Matchtest=match(tree_use$tip.label,GPA_Allmean$Csize)
-length(which(!is.na (Matchtest)))
-
-#Removing all species in the tree that is not apart of the study
-tree_synch=drop.tip(tree_use,namecheck$tree_not_data)
-
-#break up polytomies
-
-name.check(tree_synch,GPA_Allmean$Csize)
-
-#plot(tree_synch, cex=1)
-
-```
-
-#Making coordinate datasets with size correction
-
-
-```{r, echo=FALSE}
-
-
-#THE BELOW USES THE COORDINATES OF THE DATASET WITH SPECIES AVERAGED; CSIZE WITH SPECIES AVERAGED;AND CONSENSUS CONFIG OF THE COORDINAGES WITH THE SPECIES AVERAGED.
-
-#Make pgls of coords with size to get residuals (from the resulting pgls summary)
-allom_all<-procD.pgls(coords~Csize, tree_synch, data=GPA_Allmean, iter=999)
-summary(allom_all)
-#Turn the residuals into an appropriate array
-allom_res_all <-arrayspecs(allom_all$pgls.residuals,dim(GPA_Allmean$coords)[[1]],3)
-#Add the consensus shape (from the GPA) to residuals if you want to understand the landmark variation in the residuals
-Allom_all_plus_consensus <- allom_res_all + array(GPA_allmean_consensus, dim(allom_res_all))
-
-
-allom_basi<-procD.pgls(coords~Csize, tree_synch, data=GPA_Basimean, iter=999)
-summary(allom_basi)
-allom_res_basi <-arrayspecs(allom_basi$pgls.residuals,dim(GPA_Basimean$coords)[[1]],3)
-Allom_basi_plus_consensus <- allom_res_basi + array(GPA_basimean_consensus, dim(allom_res_basi))
-
-allom_rest<-procD.pgls(coords~Csize, tree_synch, data=GPA_Restmean, iter=999)
-summary(allom_rest)
-allom_res_rest <-arrayspecs(allom_rest$pgls.residuals,dim(GPA_Restmean$coords)[[1]],3)
-Allom_rest_plus_consensus <- allom_res_rest + array(GPA_restmean_consensus, dim(allom_res_rest))
-
-
-
-
-open3d()
-plot3d(Allom_all_plus_consensus[,,10], asp=FALSE)
-text3d(Allom_all_plus_consensus[,,10], texts=c(1:58))
-
-
-```
-
-
-#To understand the main variation in shape between marsupial species I run a Principal Component Analysis (PCA) on the coordinate data. Using the function plotTangentSpace from the geomorph package, the resulting graph will provide the two PC axes that explain the most variation between species coordinates. To understand the variance of each PC axis, I will run the function pc.sumary$importance to view the eigenvalues. These eigenvalues aid in further analyses.
-
-#Each PC represents a particular aspect of the overall shape variation, see more in the chunk
-
-```{r}
-
-#Run PCA for all three partitions
-PCA_mean <- plotTangentSpace(GPA_Allmean$coords, label=dimnames(GPA_Allmean$coords)[[3]])
-
-PCA_basi <- plotTangentSpace(GPA_Basimean$coords, label=dimnames(GPA_Basimean$coords)[[3]])
-
-PCA_rest <- plotTangentSpace(GPA_Restmean$coords, label=dimnames(GPA_Restmean$coords)[[3]])
+plot(PCA$pc.scores[,1]~ log(GPA$Csize))
 
 
 ```
 
 
 
-for warping etc
-
-```{r}
- #Make mean shape that the points can be plotted on
-MeanShape=mshape(GPA_Allmean$coords)
-  
-  #Or, for 3d plotting, call up the coordinates of the mean specimen; remember that the radius of the spheres might need to increase because this is not GPA'ed
-RefCoords <- Data[,,7]
-
-Dviv <- read.ply("../Data/Dasyurus_viverrinus_ascii_small.ply")
-
-
-Meanwarp_Dviv <- warpRefMesh(Dviv,RefCoords*1000, MeanShape )
-
-
-```
 #Package into RDA file so it's available in the analyses
 ```{r}
 
-save(Data,GPA_AllSpecimens,GPA_basi, GPA_reskull, GPA_Allmean, GPA_Allmean,GPA_Basimean,GPA_Restmean, Allom_all_plus_consensus,Allom_basi_plus_consensus,Allom_rest_plus_consensus,allom_res_all,allom_res_basi, allom_res_rest, speclist,part.gp, tree_synch, PCA_mean, PCA_basi, PCA_rest, MeanShape, RefCoords, Dviv, Meanwarp_Dviv, file = "../Data/Processed/processed_data_for_mars_phylo_shape.rda")
+save.image(file="../Data/Processed/Read_in_Data")
+
 
 
 
