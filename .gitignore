@@ -3,3 +3,5 @@ Data/Raw/Acrobates_pygmaeus_J7579.ply
 Data/Raw/Acrobates_pygmaeus_J7579.stl
 Data/Processed/Read_in_Data
 Data/Processed/Read_in_Data.rda
+*.stl
+*.ckpt

@@ -40,6 +40,11 @@ filelist <- list.files(path= "../Data/Raw/Coordinates", pattern = "*.txt")
   remove(i, filelist, names, k, coords, temp) # clean up environment
   
   
+  attributes(Data)
+  
+  Data[,,2]
+  
+  
 ```
 
 #Read in classifier file that contains the species name, locomotion type, diet, and clade; and also read in a ply file for checks
@@ -52,6 +57,8 @@ rownames(speclist) <-speclist$Specimen
 
 #This is a mesh I crunched down to 500,000 faces. It's 18 kb.
 Apyg <- read.ply("../Data/Raw/Acrobates_pygmaeus_J7579.ply")
+
+shade3d(Apyg)
 
 #There's a weird thing about these meshes at the moment, they show up as black. So to fix this I found a strange workaround - but any improvements are much appreciated
 
@@ -74,7 +81,7 @@ dimnames(Data)[[3]]==rownames(speclist)
 
 
 #Double check that the 3D info is entered properly by checking landmark numbers
-  plot3d(Data[,,4], asp=FALSE)
+  plot3d(Data[,,4], asp=FALSE, col="hotpink")
   text3d(Data[,,4], texts=c(1:58))
   
 
@@ -85,14 +92,21 @@ plotspec(Apyg, Data[,,1], ptsize=2, lwd=0 )
 
 
 ````
-
-
-
 #GPA for all coordinates
 
 ```{r}
 #Run GPA
 GPA <- gpagen(Data)
+
+attributes(GPA)
+
+GPA$coords[,,1]
+
+#Find the mean shape
+
+findMeanSpec(GPA$coords)
+
+Ref <- mshape(GPA$coords)
 
 ```
 #run a basic PCA
@@ -100,7 +114,11 @@ GPA <- gpagen(Data)
 
 PCA <- plotTangentSpace(GPA$coords)
 
-plotRefToTarget(PCA$pc.shapes$PC1min, PCA$pc.shapes$PC1max, method="vector")
+plotRefToTarget(GPA$coords[,,2], GPA$coords[,,1], method="vector")
+
+attributes(PCA)
+
+plotRefToTarget(Ref, PCA$pc.shapes$PC1max, method="vector")
 
 plot(PCA$pc.scores[,1]~ log(GPA$Csize))
 
@@ -112,9 +130,7 @@ plot(PCA$pc.scores[,1]~ log(GPA$Csize))
 #Package into RDA file so it's available in the analyses
 ```{r}
 
-save.image(file="../Data/Processed/Read_in_Data")
-
-
+save.image(file="../Data/Processed/Read_in_Data.rda")
 
 
 ```
