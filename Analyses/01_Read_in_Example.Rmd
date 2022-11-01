@@ -51,12 +51,12 @@ filelist <- list.files(path= "../Data/Raw/Coordinates", pattern = "*.txt")
   attributes(Data)
   
   #To navigate to a particular specimen (e.g. the second one in the array, which you know from the attributes() command above is called "Aepyprymnus_rufescens")
-  Data[,,2]
+  Data[,,7]
   
   
   #Double check that the 3D info is entered properly by checking landmark numbers
-  plot3d(Data[,,4], asp=FALSE, col="hotpink")
-  text3d(Data[,,4], texts=c(1:58))
+  plot3d(Data[,,7], asp=FALSE, col="blue")
+  text3d(Data[,,7], texts=c(1:58))
   
 ```
 
@@ -135,7 +135,7 @@ GPA <- gpagen(Data)
 
 attributes(GPA)
 
-GPA$coords[,,1]
+GPA$coords[,,8]
 
 #Find the specimen that is closest to the overall mean shape
 
@@ -160,19 +160,28 @@ attributes(PCA)
 
 #How are specimesn arranged on a PC1 vs PC 2 plot?
 
+palette <- rainbow(length(levels(as.factor(speclist$Diet))))
 
-plot(PCA$x[,2]~ PCA$x[,1], pch=19)
+
+plot(PCA$x[,2]~ PCA$x[,1], pch=19, col= palette[as.factor(speclist$Diet)], cex=1)
 text(  PCA$x[,2]~ PCA$x[,1], labels=rownames(speclist)  )
 
 # How does PC1 relate to centroid size? for fiddling with image settings, go to R console and type in ?plot. Note I'm log-transforming csize because animals tend to evolve on an exponential scale when it comes to size. If we didn't log, we would have all the small specimens bunched on the left and the relationship would likely not be linear.
 
 plot(PCA$x[,1]~ log(GPA$Csize), pch=19)
-text(  PCA$x[,2]~ PCA$x[,1], labels=rownames(speclist)  )
+text(  PCA$x[,1]~ log(GPA$Csize), labels=rownames(speclist)  )
 
 #This shows the differences between a hypothetical specimen's landmark configuration at the lower scores of PC1 - balls - and compares it to a hypothetical landmark configuration for the higher scores of PC1 (where the hairs point to)
 plotRefToTarget(PCA$shapes$shapes.comp1$min, PCA$shapes$shapes.comp1$max, method="vector")
 
 
+```
+
+```{r}
+
+LM <- procD.lm(GPA$coords~ speclist$Diet)
+
+summary(LM)
 
 
 ```
