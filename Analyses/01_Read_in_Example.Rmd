@@ -14,6 +14,8 @@ output: html_document
 library(rstudioapi)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
+library(Rvcg)
+
 
 ## Loading the libraries (and installing if necessary)
 if(!require(geomorph)) install.packages("geomorph")
@@ -66,7 +68,7 @@ filelist <- list.files(path= "../Data/Raw/Coordinates", pattern = "*.txt")
 ```{r}
 
 #This is a mesh I crunched down to 600,000 faces. It's 18 kb.
-Apyg <- read.ply("../Data/Raw/Acrobates_pygmaeus_J7579.ply")
+Apyg <- vcgPlyRead("../Data/Raw/Acrobates_pygmaeus_J7579.ply")
 
 shade3d(Apyg)
 
