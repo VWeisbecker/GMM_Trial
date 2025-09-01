@@ -2,7 +2,8 @@
 title: "01_Mars_Shape_Phylo_Prep"
 author: "Vera Weisbecker"
 date: "26 June 2019"
-output: html_document
+output: html_documenteditor_options:
+    chunk_output_type: console
 ---
 
 
