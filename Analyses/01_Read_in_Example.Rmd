@@ -14,14 +14,15 @@ output: html_document
 library(rstudioapi)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-library(Rvcg)
-
-
 ## Loading the libraries (and installing if necessary)
+#geomorph is the package we will use here. But there is at least one other, the Morpho package by Stephan Schlager which has some nifty additional functionalities. If you don't like working in a Brownian Motion context, you can also use Julien Clavel's mvMORPH package for some high-powered stats. 
 if(!require(geomorph)) install.packages("geomorph")
-if(!require(abind)) install.packages("abind")
+
+#Rvcg loads 3D files much faster than the geomorph functions  read.ply. You can also use the package to convert between mesh formats (e.g. ply vs. stl) and to decimate meshes to a particular face number
+if(!require (Rvcg)) install.packages("Rvcg")
 
 ```
+
 
 # Load 3d coordinates from the files you exported from Checkpoint. This is for Morphologika files and the code comes from Emma Sherratt
  
@@ -30,16 +31,19 @@ if(!require(abind)) install.packages("abind")
 filelist <- list.files(path= "../Data/Raw/Coordinates", pattern = "*.txt")
 
 #Next step is to remove the Museum IDs from the specimen names (in this particular case. Each dataset is different but each specimen needs a unique name and the specimen names need to match up with any classifier files you are using)  
-  
+
+#First, split your file lists by lower scores, so the first word in the file name becomes column 1 etc. This only works if your files each have the exact same naming convention, e.g. Genus_Species_MuseumNumber.
+
   tmp <- matrix(unlist(strsplit(filelist, "_")),ncol=3,byrow = TRUE)   
 
   filelist_species <- paste(tmp[,1], tmp[,2], sep="_")
 
-  
+#I am presenting the below as just a chunk of unexplained code to import Morphologica-exported files from Checkpoint. Other files have different ways of reading in but there should be ample documentation about this online.  
   names <- gsub (".txt", "", filelist) # extracts names of specimens from the file name
   filelist <- paste("../Data/Raw/Coordinates/", filelist, sep="") # rename with path
   coords <- NULL # make empty object that will be filled with 3D array of coordinate data
   
+  #This loops takes each file, appends it to the 3D array, and gives it the species names we created above.
   for (i in 1:length(filelist)){
     temp  <- read.morphologika(filelist[i]) 
     k <- dim(temp)[1] 
@@ -70,49 +74,14 @@ filelist <- list.files(path= "../Data/Raw/Coordinates", pattern = "*.txt")
 #This is a mesh I crunched down to 600,000 faces. It's 18 kb.
 Apyg <- vcgPlyRead("../Data/Raw/Acrobates_pygmaeus_J7579.ply")
 
-shade3d(Apyg)
+#the default mesh colour is black, so pick a pretty colour
+shade3d(Apyg, col="hotpink")
 
-#There's a weird thing about these meshes at the moment, they show up as black. So to fix this I found a strange workaround - but any improvements are much appreciated
-
-Apyg$material$color <- Apyg$it
-Apyg$material$color <- "hotpink"
-
-#Isn't she gorgeous!!
-shade3d(Apyg)
 
 
 ```
 
-
-#If you have curve or patch semilandmarks, you need to make a separate file for them that allows them to be identified. I won't do it here but the best way to determine which curve landmarks are which number is to plot the landmarks: 
-
-```{r}
-
-  
-open3d()
-
-#a transparent 3d object. alpha is 0=transparent, 1=opaque
-shade3d(Apyg, alpha = 0.4)
-# put on the landmarks as spheres, radius is how big
-spheres3d(Data[,,1],  col="green", radius = 0.1)
-#text for landmark numbers, e.g. if you want to determine the lm numbers for your patches and curves
-text3d(Data[,,1], texts=c(1:58), pos = 2, cex=1.2, font = 2)
-
-```
-
-# if you are using patch/curve semilandmarks, use the above to figure out what numbers they are. I normally enter them into csv files manually. I have example csv files in teh Data/Raw folder that doesn't match this dataset,just fyi. You read them in like:  
-
-```{r}
-
-#curveLM <- read.csv(curveslides)
-
-#surfaceLM <- read.csv(surfslides)
-
-
-```
-
-
-#Read a classifier file that contains the species name, and info on locomotion type, diet, and clade; this classifier file is used for analysing shape relative to whatever data are entered in that file for all species. 
+#Read a classifier file that contains other information about the species, such as info on locomotion type, diet, and clade; this classifier file is used for analysing shape relative to whatever data are entered in that file for all species. The row names of the classifier should match the dimnames of your array. The easiest way to do this is to 1) do a great job at giving good file names to your coordinates and 2) use the filelist() command to give both the 3D coordinates and the classifier file identical rownames/dimnames. Try not to manually type the names into the classifier. 
 
 
 ```{r}
@@ -127,31 +96,67 @@ dimnames(Data)[[3]]==rownames(speclist)
 ```
 
 
+#If you have curve or patch semilandmarks, you need to make a separate file for them that allows them to be identified. I won't do it here but the best way to determine which curve landmarks are which number is to plot the landmarks: 
+
+```{r}
+
+#this opens a new 3D window so it doesn't plot over the previous  
+open3d()
+
+#a transparent 3d object. alpha is 0=transparent, 1=opaque. Alpha takes a lot of graphica memory, so only use if you really need to.
+shade3d(Apyg, alpha = 0.4, col="hotpink")
+
+# put on the landmarks as spheres, radius is how big. The default radius value can be really large or small relative to the specimen, so you might have to play a bit with this
+spheres3d(Data[,,1],  col="green", radius = 0.1)
+
+#text for landmark numbers, e.g. if you want to determine the lm numbers for your patches and curves
+text3d(Data[,,1], texts=c(1:58), pos = 2, cex=1.2, font = 2)
+
+```
+
+# if you are using patch/curve semilandmarks, use the above to figure out what numbers they are. I normally enter them into csv files manually. I have example csv files in teh Data/Raw folder that do not match this dataset,just fyi. 
+
+#many people also add a symmetry removal step to their analyses, and then you would also have to add a file on the pairs of landmarks that are opposite each other on the midline. I am split on the usefulness of this and it makes the code very complicated. Most of my projects have it but I am moving away from it though because it just over-processes the data.
+
+You read these files in like:  
+
+```{r}
+
+#a table with landmark before the sliding landmark (can be sliding itself), the sliding landmark itself, and the landmark after the sliding landmark.
+curveLM <- read.csv("../Data/Raw/EXAMPLE_curveslide_manual.csv")
+
+#just a vector with which landmarks are to be treated as surface sliding.
+surfaceLM <- read.csv("../Data/Raw/EXAMPLE_surfslide_manual.csv")
+
+
+```
+
+
 #GPA for all coordinates
 
 ```{r}
-#Run GPA
+#Run GPA. If you have sliding and curve semilandmarks, you also add curves = curveLM, surfaces=surfaceLM
 GPA <- gpagen(Data)
 
-#This is waht's in a GPA. Note the separate Centroid sizes - a good way of checking if they are all correct is to check if your smallest specimen also has the smallest C size. There is a lot of potential for error in specimen dimensions so it's worth keeping a good eye on the Csizes at all times. 
+#This is what's in a GPA. Note the separate Centroid sizes - a good way of checking if they are all correct is to check if your smallest specimen also has the smallest C size. There is a lot of potential for error in specimen dimensions during checkpoint exports, so it's worth keeping a good eye on the Csizes at all times. 
 
 attributes(GPA)
 
+#you can navigate to each specimen like so:
 GPA$coords[,,8]
 
 #Find the specimen that is closest to the overall mean shape
 
 findMeanSpec(GPA$coords)
 
-#Or create a reference configuration taht is the actual mathematical mean shape:
+#Or create a reference configuration that is the actual mathematical mean shape. You can also use GPA$consensus for this, it's the same.
 
 Ref <- mshape(GPA$coords)
 
 
-
 ```
 
-#run a basic PCA, which arranges teh specimens according to where the greates amount of variation is (PC1), then the 2nd greatest (PC2)... etc. This is good for summarising but don't be tempted to analyse the PCAs much. There are better ways of asking if there is a difference between groups than checking a PCA plot.
+#run a basic PCA, which arranges the specimens according to where the greates amount of variation is (PC1), then the 2nd greatest (PC2)... etc. This is good for summarising but don't be tempted to analyse the PCAs much. There are better ways of asking if there is a difference between groups than checking a PCA plot (Weisbecker et al. 2019).
 
 ```{r}
 
@@ -179,11 +184,50 @@ plotRefToTarget(PCA$shapes$shapes.comp1$min, PCA$shapes$shapes.comp1$max, method
 
 ```
 
+#If you want to run a linear model of shape relative to a predictor - this can be like any other linear model, with a continuous or discrete predictor and you can have a multi-predictor model with or without interaction terms. All just like with basic linear modelling. 
 ```{r}
 
-LM <- procD.lm(GPA$coords~ speclist$Diet)
+#Allometry is one of the most common continuous variables that people would check, and it is much better to run this regression here rather than PCs. Again, logging Csize here
+
+Allometry <- procD.lm(GPA$coords~ log(GPA$Csize))
+
+#You can get a summary of this regression by typing
+summary(Allometry)
+
+#You can check the model fit as you usually would by plotting the model, this gives you several diagnostic plots you need to click through
+
+plot(Allometry)
+
+#You can also plot the actual regression, you have to specify that that is what you want and include the predictor again. If you type in reg.type="PredLine", you get a line of where each specimen is _projected_ to be for it's size. I don't find that very useful though because it masks the amount of variation that each specimen is off the common allometric line.
+plot(Allometry, type="regression", predictor=log(GPA$Csize), reg.type = "RegScore")
+
+#If you want to do a prettier job than the baseline plot here, you can extract the predictor and fitted scores by saving the entire plot
+Plot_allometry <- plot(Allometry, type="regression", predictor=log(GPA$Csize), reg.type = "RegScore")
+
+#Then you can plot using whatever function takes your fancy: 
+plot(Plot_allometry$RegScore~Plot_allometry$plot_args$x,pch=19, col= palette[as.factor(speclist$Diet)], cex=3)
+
+
+#You can also pull out the change of shape at the smallest and largest specimen size (so not the actual specimen, but the shape of the specimen that would be expected for its size)This is a bit fiddly but here is the code: 
+
+
+preds <- shape.predictor(Allometry$GM$fitted, 
+                         x=Plot_allometry$RegScore,
+                         predmin= min(Plot_allometry$RegScore),
+                          predmax=max(Plot_allometry$RegScore)
+                         )
+
+#then you can use the below to visualise the shape differences between smallest and largest. Hilarious!!
+plotRefToTarget(preds$predmin, preds$predmax, method="vector", radius=0.008)
+
+
+#You can also do the same thing with a factor or both, e.g.
+
+LM <- procD.lm(GPA$coords~ GPA$Csize * speclist$Diet)
 
 summary(LM)
+
+
 
 
 ```
