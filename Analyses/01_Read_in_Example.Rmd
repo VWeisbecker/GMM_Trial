@@ -22,10 +22,15 @@ if(!require(geomorph)) install.packages("geomorph")
 #Rvcg loads 3D files much faster than the geomorph functions  read.ply. You can also use the package to convert between mesh formats (e.g. ply vs. stl) and to decimate meshes to a particular face number
 if(!require (Rvcg)) install.packages("Rvcg")
 
+library(geomorph)
+library(Rvcg)
+
 ```
 
 
-# Load 3d coordinates from the files you exported from Checkpoint. This is for Morphologika files and the code comes from Emma Sherratt
+# Load 3d coordinates from the files you exported from Checkpoint. This is for Morphologika files and the code comes from Emma Sherratt. 
+
+#In this demo, I have not added all the meshes from the sample into github because that would cause it to clog. But it is a good idea to paste the meshes into a folder inside the repo, without actually pushing them (write the file extension into the gitignore file to avoid pushing - e.g. *.ply). It means that your collaborators all have to copy the _identical_ meshes into the identically-named folder on github, but allows you to visualise any mesh for things like quality control.
  
 ```{r }
 
@@ -60,7 +65,6 @@ filelist <- list.files(path= "../Data/Raw/Coordinates", pattern = "*.txt")
   #To navigate to a particular specimen (e.g. the second one in the array, which you know from the attributes() command above is called "Aepyprymnus_rufescens")
   Data[,,7]
   
-  
   #Double check that the 3D info is entered properly by checking landmark numbers
   plot3d(Data[,,7], asp=FALSE, col="blue")
   text3d(Data[,,7], texts=c(1:58))
@@ -79,7 +83,6 @@ Apyg <- vcgPlyRead("../Data/Raw/Acrobates_pygmaeus_J7579.ply")
 shade3d(Apyg, col="hotpink")
 
 
-
 ```
 
 #Read a classifier file that contains other information about the species, such as info on locomotion type, diet, and clade; this classifier file is used for analysing shape relative to whatever data are entered in that file for all species. The row names of the classifier should match the dimnames of your array. The easiest way to do this is to 1) do a great job at giving good file names to your coordinates and 2) use the filelist() command to give both the 3D coordinates and the classifier file identical rownames/dimnames. Try not to manually type the names into the classifier. 
@@ -93,6 +96,7 @@ rownames(speclist) <-speclist$Specimen
 #Double check that the order of your Array and the order of your specimen list are the same (they will need to talk to each other!). This has to return "TRUE" for all. 
 
 dimnames(Data)[[3]]==rownames(speclist)
+
 
 ```
 
@@ -115,7 +119,7 @@ text3d(Data[,,1], texts=c(1:58), pos = 2, cex=1.2, font = 2)
 
 ```
 
-# if you are using patch/curve semilandmarks, use the above to figure out what numbers they are. I normally enter them into csv files manually. I have example csv files in teh Data/Raw folder that do not match this dataset,just fyi. 
+# if you are using patch/curve semilandmarks, use the above to figure out what numbers they are. I normally enter them into csv files manually. I have example csv files in the Data/Raw folder that do not match this dataset,just fyi. 
 
 #many people also add a symmetry removal step to their analyses, and then you would also have to add a file on the pairs of landmarks that are opposite each other on the midline. I am split on the usefulness of this and it makes the code very complicated. Most of my projects have it but I am moving away from it though because it just over-processes the data.
 
@@ -150,10 +154,15 @@ GPA$coords[,,8]
 
 findMeanSpec(GPA$coords)
 
-#Or create a reference configuration that is the actual mathematical mean shape. You can also use GPA$consensus for this, it's the same.
+#Or create a reference configuration that is the actual mathematical mean shape. You can also use GPA$consensus for this, it's the same. 
+
+#We won't do it here, but you can use the mean shape configuration to warp the mesh of the specimen closest to the mean 
 
 Ref <- mshape(GPA$coords)
 
+#You can also now check if you have any outliers in your data. But don't rely on this alone, it won't pick up small but important mistakes! You should also check if the Csizes work (below) and ideally also use plotReftoTarget to check if all of your specimens have their landmarks correctly placed. I can send you some code to do this if you like.
+
+plotOutliers(GPA$coords)
 
 ```
 
@@ -165,6 +174,9 @@ PCA <- gm.prcomp(GPA$coords)
 
 #This is what's in a PCA
 attributes(PCA)
+
+#Here are the PC scores for each PC for each species
+PCA$x
 
 #How are specimesn arranged on a PC1 vs PC 2 plot?
 
@@ -211,7 +223,6 @@ plot(Plot_allometry$RegScore~Plot_allometry$plot_args$x,pch=19, col= palette[as.
 
 #You can also pull out the change of shape at the smallest and largest specimen size (so not the actual specimen, but the shape of the specimen that would be expected for its size)This is a bit fiddly but here is the code: 
 
-
 preds <- shape.predictor(Allometry$GM$fitted, 
                          x=Plot_allometry$RegScore,
                          predmin= min(Plot_allometry$RegScore),
@@ -239,6 +250,10 @@ summary(LM)
 ```{r}
 
 save.image(file="../Data/Processed/Read_in_Data.rda")
+
+#Or you just save the things you really need for the future: 
+save(GPA, PCA, speclist, file="../Data/Processed/GPA_PCA_Classifier.rda")
+
 
 #Now if you clear the environment
 rm(list = ls())
